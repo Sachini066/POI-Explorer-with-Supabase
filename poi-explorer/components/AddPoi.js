@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Input, Button, message, List, Typography } from 'antd'
+import { Input, Button, message, List, Typography, Row, Col, Card } from 'antd'
 import { supabase } from '../lib/supabaseClient'
 import { haversineDistance } from '../lib/haversine'
 
@@ -70,7 +70,7 @@ export default function AddPoi({ userId, onAddPoi, onSelectPoi }) {
       setLongitude('')
       setCategory('')
       fetchPois()
-      onAddPoi?.(poi, userId) // notify parent
+      onAddPoi?.(poi, userId)
     }
   }
 
@@ -90,45 +90,95 @@ export default function AddPoi({ userId, onAddPoi, onSelectPoi }) {
       setDistance(null)
     }
 
-    onSelectPoi?.(poi) // notify parent about selection
+    onSelectPoi?.(poi)
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', padding: '1rem', border: '1px solid #ddd', borderRadius: 8, background: '#fafafa' }}>
-      <Typography.Title level={4}>Add a New POI</Typography.Title>
+    <Card
+      style={{ maxWidth: 900, margin: '2rem auto', borderRadius: 12, boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }}
+      bodyStyle={{ padding: '24px' }}
+    >
+      <Row gutter={32}>
+        {/* Left: Add POI form */}
+        <Col xs={24} md={12}>
+          <Typography.Title level={4} style={{ marginBottom: 24 }}>
+            Add a New POI
+          </Typography.Title>
 
-      <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} style={{ marginBottom: 8 }} />
-      <Input type="number" step="any" placeholder="Latitude" value={latitude} onChange={e => setLatitude(e.target.value)} style={{ marginBottom: 8 }} />
-      <Input type="number" step="any" placeholder="Longitude" value={longitude} onChange={e => setLongitude(e.target.value)} style={{ marginBottom: 8 }} />
-      <Input placeholder="Category (optional)" value={category} onChange={e => setCategory(e.target.value)} style={{ marginBottom: 16 }} />
+          <Input
+            placeholder="Name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            style={{ marginBottom: 16 }}
+            size="large"
+          />
+          <Input
+            type="number"
+            step="any"
+            placeholder="Latitude"
+            value={latitude}
+            onChange={e => setLatitude(e.target.value)}
+            style={{ marginBottom: 16 }}
+            size="large"
+          />
+          <Input
+            type="number"
+            step="any"
+            placeholder="Longitude"
+            value={longitude}
+            onChange={e => setLongitude(e.target.value)}
+            style={{ marginBottom: 16 }}
+            size="large"
+          />
+          <Input
+            placeholder="Category (optional)"
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            style={{ marginBottom: 24 }}
+            size="large"
+          />
+          <Button type="primary" onClick={onAddPoiClick} loading={loading} block size="large">
+            Add POI
+          </Button>
+        </Col>
 
-      <Button type="primary" onClick={onAddPoiClick} loading={loading} block>Add POI</Button>
+        {/* Right: POI List */}
+        <Col xs={24} md={12}>
+          <Typography.Title level={4} style={{ marginBottom: 24 }}>
+            My POIs
+          </Typography.Title>
 
-      <Typography.Title level={5} style={{ marginTop: 32 }}>My POIs</Typography.Title>
+          <List
+            bordered
+            loading={loadingPois}
+            dataSource={pois}
+            locale={{ emptyText: 'No POIs added yet.' }}
+            style={{ maxHeight: 420, overflowY: 'auto', borderRadius: 8 }}
+            renderItem={item => (
+              <List.Item
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor: selectedPOIs.some(p => p.id === item.id) ? '#e6f7ff' : '',
+                }}
+                onClick={() => handleSelect(item)}
+                key={item.id}
+                hoverable
+              >
+                <List.Item.Meta
+                  title={item.name}
+                  description={`Lat: ${item.lat}, Lon: ${item.lon}${item.category ? ` — ${item.category}` : ''}`}
+                />
+              </List.Item>
+            )}
+          />
 
-      <List
-        bordered
-        loading={loadingPois}
-        dataSource={pois}
-        locale={{ emptyText: 'No POIs added yet.' }}
-        renderItem={item => (
-          <List.Item
-            style={{ cursor: 'pointer', backgroundColor: selectedPOIs.some(p => p.id === item.id) ? '#e6f7ff' : '' }}
-            onClick={() => handleSelect(item)}
-          >
-            <List.Item.Meta
-              title={item.name}
-              description={`Lat: ${item.lat}, Lon: ${item.lon}${item.category ? ` — ${item.category}` : ''}`}
-            />
-          </List.Item>
-        )}
-      />
-
-      {distance && (
-        <Typography.Text style={{ marginTop: 16, display: 'block' }}>
-          📏 Distance between selected POIs: <strong>{distance} km</strong>
-        </Typography.Text>
-      )}
-    </div>
+          {distance && (
+            <Typography.Text style={{ marginTop: 16, display: 'block', fontWeight: 'bold' }}>
+              📏 Distance between selected POIs: {distance} km
+            </Typography.Text>
+          )}
+        </Col>
+      </Row>
+    </Card>
   )
 }

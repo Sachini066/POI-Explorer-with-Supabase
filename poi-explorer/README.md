@@ -2,6 +2,9 @@
 
 A React / Next.js application to search, add, view, and manage Points of Interest (POIs) using Supabase as backend and OpenStreetMap for location search.
 
+![Logo](Preview.png)
+
+
 ---
 
 ## Features

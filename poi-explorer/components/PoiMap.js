@@ -3,8 +3,8 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import { useState, useEffect } from 'react'
 import L from 'leaflet'
+import { Card, Button, Typography } from 'antd'
 
-// Fix default marker icons for Leaflet
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -44,39 +44,53 @@ export default function PoiMap({ pois = [], onAddPoi, selectedPois = [] }) {
       : []
 
   return (
-   
-<MapContainer center={center} zoom={initialZoom} style={{ height: '400px', width: '100%' }}>
-<MapAutoPan center={center} />
-<TileLayer
-    attribution='&copy; OpenStreetMap contributors'
-    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-  />
-
-  {pois.map(poi => (
-    <Marker
-      key={poi.place_id || poi.id}
-      position={[parseFloat(poi.lat || poi.latitude), parseFloat(poi.lon || poi.longitude)]}
-      eventHandlers={{ click: () => setActivePoi(poi) }}
-    />
-  ))}
-
-  {activePoi && (
-    <Popup
-      position={[parseFloat(activePoi.lat || activePoi.latitude), parseFloat(activePoi.lon || activePoi.longitude)]}
-      onClose={() => setActivePoi(null)}
+    <Card
+      title={<Typography.Title level={4} style={{ margin: 0 }}>Map View</Typography.Title>}
+      style={{ width: '100%', maxWidth: 900, margin: '1rem auto', borderRadius: 8, overflow: 'hidden' }}
+      bodyStyle={{ padding: 0, height: 420 }}
+      bordered
     >
-      <div>
-        <h4>{activePoi.display_name || activePoi.name}</h4>
-        <p>Lat: {activePoi.lat || activePoi.latitude}</p>
-        <p>Lon: {activePoi.lon || activePoi.longitude}</p>
-        <button onClick={() => onAddPoi?.(activePoi)}>Add to My POIs</button>
-      </div>
-    </Popup>
-  )}
+      <MapContainer center={center} zoom={initialZoom} style={{ height: '400px', width: '100%' }}>
+        <MapAutoPan center={center} />
+        <TileLayer
+          attribution="&copy; OpenStreetMap contributors"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-  {linePositions.length === 2 && (
-    <Polyline positions={linePositions} pathOptions={{ color: 'red', weight: 4 }} />
-  )}
-</MapContainer>
+        {pois.map((poi) => (
+          <Marker
+            key={poi.place_id || poi.id}
+            position={[parseFloat(poi.lat || poi.latitude), parseFloat(poi.lon || poi.longitude)]}
+            eventHandlers={{ click: () => setActivePoi(poi) }}
+          />
+        ))}
+
+        {activePoi && (
+          <Popup
+            position={[parseFloat(activePoi.lat || activePoi.latitude), parseFloat(activePoi.lon || activePoi.longitude)]}
+            onClose={() => setActivePoi(null)}
+          >
+            <div style={{ minWidth: 200 }}>
+              <Typography.Title level={5} style={{ marginBottom: 8 }}>
+                {activePoi.display_name || activePoi.name}
+              </Typography.Title>
+              <Typography.Paragraph style={{ marginBottom: 4 }}>
+                <b>Latitude:</b> {activePoi.lat || activePoi.latitude}
+              </Typography.Paragraph>
+              <Typography.Paragraph style={{ marginBottom: 12 }}>
+                <b>Longitude:</b> {activePoi.lon || activePoi.longitude}
+              </Typography.Paragraph>
+              <Button type="primary" block onClick={() => onAddPoi?.(activePoi)}>
+                Add to My POIs
+              </Button>
+            </div>
+          </Popup>
+        )}
+
+        {linePositions.length === 2 && (
+          <Polyline positions={linePositions} pathOptions={{ color: 'red', weight: 4 }} />
+        )}
+      </MapContainer>
+    </Card>
   )
 }
