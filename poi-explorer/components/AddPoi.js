@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Input, Button, message, List, Typography } from 'antd'
 import { supabase } from '../lib/supabaseClient'
+import { haversineDistance } from '../lib/haversine'
 
 export default function AddPoi({ userId }) {
   const [name, setName] = useState('')
@@ -13,9 +14,17 @@ export default function AddPoi({ userId }) {
   const [pois, setPois] = useState([])
   const [loadingPois, setLoadingPois] = useState(false)
 
-  // Fetch user's POIs from Supabase on mount and after add
+  const [selectedPOIs, setSelectedPOIs] = useState([])
+  const [distance, setDistance] = useState(null)
+
+  // 🔄 Fetch POIs from Supabase
+  useEffect(() => {
+    if (userId) fetchPois()
+  }, [userId])
+
   async function fetchPois() {
     setLoadingPois(true)
+
     const { data, error } = await supabase
       .from('pois')
       .select('*')
@@ -31,12 +40,7 @@ export default function AddPoi({ userId }) {
     }
   }
 
-  useEffect(() => {
-    if (userId) {
-      fetchPois()
-    }
-  }, [userId])
-
+  // ➕ Add POI to Supabase
   async function onAddPoiClick() {
     if (!name || !latitude || !longitude) {
       message.warning('Please fill in Name, Latitude, and Longitude')
@@ -50,14 +54,14 @@ export default function AddPoi({ userId }) {
 
     const poi = {
       name,
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
+      lat: parseFloat(latitude),
+      lon: parseFloat(longitude),
       category,
       user_id: userId,
     }
 
     setLoading(true)
-    const { error } = await supabase.from('pois').insert(poi)
+    const { error } = await supabase.from('pois').insert([poi])
     setLoading(false)
 
     if (error) {
@@ -68,12 +72,22 @@ export default function AddPoi({ userId }) {
       setLatitude('')
       setLongitude('')
       setCategory('')
-      fetchPois() // refresh list
+      fetchPois()
     }
   }
 
+  // 📍 Render
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', padding: '1rem', border: '1px solid #ddd', borderRadius: 8, background: '#fafafa' }}>
+    <div
+      style={{
+        maxWidth: 400,
+        margin: '2rem auto',
+        padding: '1rem',
+        border: '1px solid #ddd',
+        borderRadius: 8,
+        background: '#fafafa',
+      }}
+    >
       <Typography.Title level={4}>Add a New POI</Typography.Title>
 
       <Input
@@ -118,14 +132,46 @@ export default function AddPoi({ userId }) {
         dataSource={pois}
         locale={{ emptyText: 'No POIs added yet.' }}
         renderItem={item => (
-          <List.Item>
+          <List.Item
+            style={{
+              cursor: 'pointer',
+              backgroundColor: selectedPOIs.some(p => p.id === item.id)
+                ? '#e6f7ff'
+                : '',
+            }}
+            onClick={() => {
+              const alreadySelected = selectedPOIs.find(p => p.id === item.id)
+              const updatedSelection = alreadySelected
+                ? selectedPOIs.filter(p => p.id !== item.id)
+                : [...selectedPOIs, item].slice(-2)
+
+              setSelectedPOIs(updatedSelection)
+
+              if (updatedSelection.length === 2) {
+                const [a, b] = updatedSelection
+                const dist = haversineDistance(a.lat, a.lon, b.lat, b.lon)
+                setDistance(dist.toFixed(2))
+              } else {
+                setDistance(null)
+              }
+            }}
+          >
             <List.Item.Meta
               title={item.name}
-              description={`Lat: ${item.latitude.toFixed(4)}, Lon: ${item.longitude.toFixed(4)}${item.category ? ` — ${item.category}` : ''}`}
+              description={`Lat: ${item.lat}, Lon: ${item.lon}${
+                item.category ? ` — ${item.category}` : ''
+              }`}
             />
           </List.Item>
         )}
       />
+
+      {distance && (
+        <Typography.Text style={{ marginTop: 16, display: 'block' }}>
+          📏 Distance between selected POIs:{' '}
+          <strong>{distance} km</strong>
+        </Typography.Text>
+      )}
     </div>
   )
 }

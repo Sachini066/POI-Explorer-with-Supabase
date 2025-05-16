@@ -6,7 +6,10 @@ export default function PoiSearch({ onSelect }) {
   const [results, setResults] = useState([])
 
   const handleSearch = async (value) => {
-    if (!value) return
+    if (!value) {
+      setResults([])  // clear results if input empty
+      return
+    }
     setLoading(true)
     try {
       const res = await fetch(
@@ -16,6 +19,7 @@ export default function PoiSearch({ onSelect }) {
       setResults(data)
     } catch (err) {
       console.error('Search failed', err)
+      setResults([])
     }
     setLoading(false)
   }
@@ -27,10 +31,12 @@ export default function PoiSearch({ onSelect }) {
         enterButton="Search"
         loading={loading}
         onSearch={handleSearch}
+        allowClear
       />
       <List
         bordered
         dataSource={results}
+        locale={{ emptyText: 'No results found' }}
         renderItem={(item) => (
           <List.Item onClick={() => onSelect(item)} style={{ cursor: 'pointer' }}>
             <List.Item.Meta

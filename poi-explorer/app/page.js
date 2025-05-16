@@ -14,18 +14,29 @@ const PoiMap = dynamic(() => import('../components/PoiMap'), {
 export default function Page() {
   const { session } = useAuth()
   const [searchResults, setSearchResults] = useState([])
+  const [selectedPOIs, setSelectedPOIs] = useState([]) // ✅ Fix: define this
 
-  const handleSelectPoi = (poi) => setSearchResults([poi])
+  const handleSelectPoi = (poi) => {
+    // toggle selection and limit to 2
+    const alreadySelected = selectedPOIs.find((p) => p.id === poi.id)
+    const updated =
+      alreadySelected
+        ? selectedPOIs.filter((p) => p.id !== poi.id)
+        : [...selectedPOIs, poi].slice(-2)
 
-  // This is the handler passed down to AddPoi
+    setSelectedPOIs(updated)
+    setSearchResults(updated) // show selected POIs on the map
+  }
+
   const handleAddPoi = async (poi, userId) => {
     if (!session) {
       return alert('Please log in first')
     }
     try {
-      await savePoi(poi, userId) // your supabase save function
+      await savePoi(poi, userId)
       alert('POI saved successfully!')
-      // Optionally update UI / reload POIs
+      setSearchResults([poi])
+      setSelectedPOIs([poi])
     } catch (err) {
       alert('Failed to save POI: ' + err.message)
     }
@@ -34,8 +45,18 @@ export default function Page() {
   return (
     <>
       <PoiSearch onSelect={handleSelectPoi} />
-      <PoiMap pois={searchResults} onAddPoi={handleAddPoi} />
-      {session && <AddPoi userId={session.user.id} onAddPoi={handleAddPoi} />}
+      <PoiMap
+        pois={searchResults}
+        selectedPois={selectedPOIs}
+        onAddPoi={handleAddPoi}
+      />
+      {session && (
+        <AddPoi
+          userId={session.user.id}
+          onAddPoi={handleAddPoi}
+          onSelectPoi={handleSelectPoi} // list selection
+        />
+      )}
     </>
   )
 }
