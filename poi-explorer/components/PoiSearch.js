@@ -1,3 +1,5 @@
+'use client'
+
 import { Input, List } from 'antd'
 import { useState } from 'react'
 
@@ -7,7 +9,7 @@ export default function PoiSearch({ onSelect }) {
 
   const handleSearch = async (value) => {
     if (!value) {
-      setResults([])  // clear results if input empty
+      setResults([])
       return
     }
     setLoading(true)
@@ -37,6 +39,7 @@ export default function PoiSearch({ onSelect }) {
         bordered
         dataSource={results}
         locale={{ emptyText: 'No results found' }}
+        style={{ marginTop: 10, maxHeight: 300, overflowY: 'auto' }}
         renderItem={(item) => (
           <List.Item onClick={() => onSelect(item)} style={{ cursor: 'pointer' }}>
             <List.Item.Meta
@@ -45,7 +48,6 @@ export default function PoiSearch({ onSelect }) {
             />
           </List.Item>
         )}
-        style={{ marginTop: 10, maxHeight: 300, overflowY: 'auto' }}
       />
     </>
   )

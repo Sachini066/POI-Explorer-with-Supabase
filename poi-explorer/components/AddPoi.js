@@ -5,7 +5,7 @@ import { Input, Button, message, List, Typography } from 'antd'
 import { supabase } from '../lib/supabaseClient'
 import { haversineDistance } from '../lib/haversine'
 
-export default function AddPoi({ userId }) {
+export default function AddPoi({ userId, onAddPoi, onSelectPoi }) {
   const [name, setName] = useState('')
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
@@ -17,7 +17,6 @@ export default function AddPoi({ userId }) {
   const [selectedPOIs, setSelectedPOIs] = useState([])
   const [distance, setDistance] = useState(null)
 
-  // 🔄 Fetch POIs from Supabase
   useEffect(() => {
     if (userId) fetchPois()
   }, [userId])
@@ -40,13 +39,11 @@ export default function AddPoi({ userId }) {
     }
   }
 
-  // ➕ Add POI to Supabase
   async function onAddPoiClick() {
     if (!name || !latitude || !longitude) {
       message.warning('Please fill in Name, Latitude, and Longitude')
       return
     }
-
     if (!userId) {
       message.error('User ID is missing. Please login.')
       return
@@ -73,58 +70,41 @@ export default function AddPoi({ userId }) {
       setLongitude('')
       setCategory('')
       fetchPois()
+      onAddPoi?.(poi, userId) // notify parent
     }
   }
 
-  // 📍 Render
+  const handleSelect = (poi) => {
+    const exists = selectedPOIs.find(p => p.id === poi.id)
+    const updated = exists
+      ? selectedPOIs.filter(p => p.id !== poi.id)
+      : [...selectedPOIs, poi].slice(-2)
+
+    setSelectedPOIs(updated)
+
+    if (updated.length === 2) {
+      const [a, b] = updated
+      const dist = haversineDistance(a.lat, a.lon, b.lat, b.lon)
+      setDistance(dist.toFixed(2))
+    } else {
+      setDistance(null)
+    }
+
+    onSelectPoi?.(poi) // notify parent about selection
+  }
+
   return (
-    <div
-      style={{
-        maxWidth: 400,
-        margin: '2rem auto',
-        padding: '1rem',
-        border: '1px solid #ddd',
-        borderRadius: 8,
-        background: '#fafafa',
-      }}
-    >
+    <div style={{ maxWidth: 400, margin: '2rem auto', padding: '1rem', border: '1px solid #ddd', borderRadius: 8, background: '#fafafa' }}>
       <Typography.Title level={4}>Add a New POI</Typography.Title>
 
-      <Input
-        placeholder="Name"
-        value={name}
-        onChange={e => setName(e.target.value)}
-        style={{ marginBottom: 8 }}
-      />
-      <Input
-        type="number"
-        step="any"
-        placeholder="Latitude"
-        value={latitude}
-        onChange={e => setLatitude(e.target.value)}
-        style={{ marginBottom: 8 }}
-      />
-      <Input
-        type="number"
-        step="any"
-        placeholder="Longitude"
-        value={longitude}
-        onChange={e => setLongitude(e.target.value)}
-        style={{ marginBottom: 8 }}
-      />
-      <Input
-        placeholder="Category (optional)"
-        value={category}
-        onChange={e => setCategory(e.target.value)}
-        style={{ marginBottom: 16 }}
-      />
-      <Button type="primary" onClick={onAddPoiClick} loading={loading} block>
-        Add POI
-      </Button>
+      <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} style={{ marginBottom: 8 }} />
+      <Input type="number" step="any" placeholder="Latitude" value={latitude} onChange={e => setLatitude(e.target.value)} style={{ marginBottom: 8 }} />
+      <Input type="number" step="any" placeholder="Longitude" value={longitude} onChange={e => setLongitude(e.target.value)} style={{ marginBottom: 8 }} />
+      <Input placeholder="Category (optional)" value={category} onChange={e => setCategory(e.target.value)} style={{ marginBottom: 16 }} />
 
-      <Typography.Title level={5} style={{ marginTop: 32 }}>
-        My POIs
-      </Typography.Title>
+      <Button type="primary" onClick={onAddPoiClick} loading={loading} block>Add POI</Button>
+
+      <Typography.Title level={5} style={{ marginTop: 32 }}>My POIs</Typography.Title>
 
       <List
         bordered
@@ -133,34 +113,12 @@ export default function AddPoi({ userId }) {
         locale={{ emptyText: 'No POIs added yet.' }}
         renderItem={item => (
           <List.Item
-            style={{
-              cursor: 'pointer',
-              backgroundColor: selectedPOIs.some(p => p.id === item.id)
-                ? '#e6f7ff'
-                : '',
-            }}
-            onClick={() => {
-              const alreadySelected = selectedPOIs.find(p => p.id === item.id)
-              const updatedSelection = alreadySelected
-                ? selectedPOIs.filter(p => p.id !== item.id)
-                : [...selectedPOIs, item].slice(-2)
-
-              setSelectedPOIs(updatedSelection)
-
-              if (updatedSelection.length === 2) {
-                const [a, b] = updatedSelection
-                const dist = haversineDistance(a.lat, a.lon, b.lat, b.lon)
-                setDistance(dist.toFixed(2))
-              } else {
-                setDistance(null)
-              }
-            }}
+            style={{ cursor: 'pointer', backgroundColor: selectedPOIs.some(p => p.id === item.id) ? '#e6f7ff' : '' }}
+            onClick={() => handleSelect(item)}
           >
             <List.Item.Meta
               title={item.name}
-              description={`Lat: ${item.lat}, Lon: ${item.lon}${
-                item.category ? ` — ${item.category}` : ''
-              }`}
+              description={`Lat: ${item.lat}, Lon: ${item.lon}${item.category ? ` — ${item.category}` : ''}`}
             />
           </List.Item>
         )}
@@ -168,8 +126,7 @@ export default function AddPoi({ userId }) {
 
       {distance && (
         <Typography.Text style={{ marginTop: 16, display: 'block' }}>
-          📏 Distance between selected POIs:{' '}
-          <strong>{distance} km</strong>
+          📏 Distance between selected POIs: <strong>{distance} km</strong>
         </Typography.Text>
       )}
     </div>

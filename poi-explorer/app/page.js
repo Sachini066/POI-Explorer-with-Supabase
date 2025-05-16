@@ -3,39 +3,38 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import PoiSearch from '../components/PoiSearch'
+import AddPoi from '../components/AddPoi'
 import { useAuth } from '../context/AuthContext'
 import { savePoi } from '../lib/poiUtils'
-import AddPoi from '../components/AddPoi'
 
-const PoiMap = dynamic(() => import('../components/PoiMap'), {
-  ssr: false,
-})
+const PoiMap = dynamic(() => import('../components/PoiMap'), { ssr: false })
 
 export default function Page() {
   const { session } = useAuth()
-  const [searchResults, setSearchResults] = useState([])
-  const [selectedPOIs, setSelectedPOIs] = useState([]) // ✅ Fix: define this
+
+  const [mapPois, setMapPois] = useState([])
+  const [selectedPOIs, setSelectedPOIs] = useState([])
 
   const handleSelectPoi = (poi) => {
-    // toggle selection and limit to 2
-    const alreadySelected = selectedPOIs.find((p) => p.id === poi.id)
-    const updated =
-      alreadySelected
-        ? selectedPOIs.filter((p) => p.id !== poi.id)
-        : [...selectedPOIs, poi].slice(-2)
+    const exists = selectedPOIs.find(p => p.id === poi.id)
+    const updated = exists
+      ? selectedPOIs.filter(p => p.id !== poi.id)
+      : [...selectedPOIs, poi].slice(-2)
 
     setSelectedPOIs(updated)
-    setSearchResults(updated) // show selected POIs on the map
+    setMapPois(updated)
   }
 
   const handleAddPoi = async (poi, userId) => {
     if (!session) {
-      return alert('Please log in first')
+      alert('Please log in first')
+      return
     }
     try {
       await savePoi(poi, userId)
       alert('POI saved successfully!')
-      setSearchResults([poi])
+
+      setMapPois([poi])
       setSelectedPOIs([poi])
     } catch (err) {
       alert('Failed to save POI: ' + err.message)
@@ -45,17 +44,9 @@ export default function Page() {
   return (
     <>
       <PoiSearch onSelect={handleSelectPoi} />
-      <PoiMap
-        pois={searchResults}
-        selectedPois={selectedPOIs}
-        onAddPoi={handleAddPoi}
-      />
+      <PoiMap pois={mapPois} selectedPois={selectedPOIs} onAddPoi={handleAddPoi} />
       {session && (
-        <AddPoi
-          userId={session.user.id}
-          onAddPoi={handleAddPoi}
-          onSelectPoi={handleSelectPoi} // list selection
-        />
+        <AddPoi userId={session.user.id} onAddPoi={handleAddPoi} onSelectPoi={handleSelectPoi} />
       )}
     </>
   )
